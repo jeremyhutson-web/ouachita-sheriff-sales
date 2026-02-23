@@ -171,13 +171,24 @@
   </div>
 
   <script>
-    const API_KEY = 'AIzaSyDEygkgPdiRYpNJmL4fnHwpFHI5EWv-TwM';
+    let API_KEY = '';
     let map, markers = [], infoWindow, listings = [];
 
     window.onload = async () => {
+      await loadConfig();
       await loadListings();
       loadGoogleMaps();
     };
+
+    async function loadConfig() {
+      try {
+        const res = await fetch('/api/config');
+        const config = await res.json();
+        API_KEY = config.mapsApiKey;
+      } catch (err) {
+        console.error('Failed to load config:', err);
+      }
+    }
 
     function loadGoogleMaps() {
       const script = document.createElement('script');

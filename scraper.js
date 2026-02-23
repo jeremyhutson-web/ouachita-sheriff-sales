@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const URL = 'https://sheriffsaleonline.azurewebsites.net/sheriffsaledates/ouachita';
-const GOOGLE_API_KEY = 'AIzaSyDEygkgPdiRYpNJmL4fnHwpFHI5EWv-TwM';
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 
 async function geocode(address) {
   const fullAddress = address.includes('LA') ? address : `${address}, Louisiana`;

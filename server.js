@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -5,9 +6,15 @@ const { spawn } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
+
+// Get Maps API key (restricted by referrer in Google Cloud Console)
+app.get('/api/config', (req, res) => {
+  res.json({ mapsApiKey: GOOGLE_API_KEY });
+});
 
 // Get listings
 app.get('/api/listings', (req, res) => {
