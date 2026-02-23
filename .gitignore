@@ -1,0 +1,7 @@
+node_modules/
+.env
+*.log
+.DS_Store
+debug*.html
+debug*.txt
+debug*.png

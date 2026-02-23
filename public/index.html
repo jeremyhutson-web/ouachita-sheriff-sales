@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ouachita Parish Sheriff Sales Map</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; }
+
+    #app { display: flex; height: 100vh; }
+
+    #sidebar {
+      width: 400px;
+      background: #fff;
+      border-right: 1px solid #ddd;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #header {
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      color: white;
+      padding: 20px;
+    }
+
+    #header h1 { font-size: 20px; margin-bottom: 4px; }
+    #header p { font-size: 13px; opacity: 0.9; }
+
+    #controls {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      background: #f8f9fa;
+    }
+
+    #controls button {
+      width: 100%;
+      padding: 12px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    #controls button:hover { background: #1d4ed8; }
+    #controls button:disabled { background: #93c5fd; cursor: wait; }
+
+    #stats {
+      padding: 12px;
+      background: #f1f5f9;
+      font-size: 13px;
+      color: #475569;
+      border-bottom: 1px solid #ddd;
+    }
+
+    #sale-dates {
+      padding: 8px 12px;
+      background: #eff6ff;
+      font-size: 12px;
+      color: #1e40af;
+      border-bottom: 1px solid #ddd;
+    }
+
+    #listings { flex: 1; overflow-y: auto; }
+
+    .listing {
+      padding: 14px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .listing:hover { background: #f8fafc; }
+    .listing.active { background: #eff6ff; border-left: 3px solid #2563eb; }
+
+    .listing-address {
+      font-weight: 600;
+      color: #1e293b;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .listing-details {
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+
+    .listing-bid {
+      color: #059669;
+      font-weight: 600;
+    }
+
+    .listing-writ {
+      color: #dc2626;
+    }
+
+    .listing-case {
+      font-family: monospace;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+
+    .listing-status {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 8px;
+      text-transform: uppercase;
+    }
+
+    .status-pending { background: #fef3c7; color: #92400e; }
+    .status-active { background: #dcfce7; color: #166534; }
+
+    #map { flex: 1; }
+
+    .info-window { max-width: 320px; }
+    .info-window img { width: 100%; height: 150px; object-fit: cover; border-radius: 6px; margin-bottom: 10px; }
+    .info-window h3 { font-size: 15px; margin-bottom: 10px; color: #1e293b; }
+    .info-window p { font-size: 13px; margin: 6px 0; color: #475569; }
+    .info-window .parties { font-size: 12px; color: #64748b; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
+    .info-window a {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 8px 16px;
+      background: #2563eb;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    .info-window a:hover { background: #1d4ed8; }
+
+    .loading, .no-listings {
+      padding: 40px 20px;
+      text-align: center;
+      color: #64748b;
+    }
+
+    @media (max-width: 768px) {
+      #app { flex-direction: column; }
+      #sidebar { width: 100%; height: 50%; }
+      #map { height: 50%; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="sidebar">
+      <div id="header">
+        <h1>Ouachita Parish Sheriff Sales</h1>
+        <p>Real Estate Auction Listings</p>
+      </div>
+      <div id="controls">
+        <button id="refreshBtn" onclick="refreshListings()">Refresh Listings</button>
+      </div>
+      <div id="stats">Loading...</div>
+      <div id="sale-dates"></div>
+      <div id="listings">
+        <div class="loading">Loading listings...</div>
+      </div>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <script>
+    const API_KEY = 'AIzaSyDEygkgPdiRYpNJmL4fnHwpFHI5EWv-TwM';
+    let map, markers = [], infoWindow, listings = [];
+
+    window.onload = async () => {
+      await loadListings();
+      loadGoogleMaps();
+    };
+
+    function loadGoogleMaps() {
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&callback=initMap`;
+      script.async = true;
+      document.head.appendChild(script);
+    }
+
+    function initMap() {
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat: 32.5093, lng: -92.1193 },
+        zoom: 11,
+        styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }]
+      });
+      infoWindow = new google.maps.InfoWindow();
+      addMarkers();
+    }
+
+    async function loadListings() {
+      try {
+        const res = await fetch('/api/listings');
+        const data = await res.json();
+        listings = data.listings || [];
+        updateStats(data);
+        updateSaleDates(data.saleDates);
+        renderListings();
+        if (map) addMarkers();
+      } catch (err) {
+        document.getElementById('listings').innerHTML = '<div class="no-listings">Failed to load</div>';
+      }
+    }
+
+    function updateStats(data) {
+      const el = document.getElementById('stats');
+      if (data.count > 0) {
+        const date = new Date(data.scrapedAt).toLocaleString();
+        const mapped = data.listings.filter(l => l.lat && l.lng).length;
+        el.innerHTML = `<strong>${data.count}</strong> properties | <strong>${mapped}</strong> on map | Updated: ${date}`;
+      } else {
+        el.innerHTML = 'No listings found. Click Refresh to fetch data.';
+      }
+    }
+
+    function updateSaleDates(dates) {
+      const el = document.getElementById('sale-dates');
+      if (dates && dates.length > 0) {
+        el.innerHTML = `<strong>Upcoming Sale Dates:</strong> ${dates.join(' &bull; ')}`;
+      } else {
+        el.innerHTML = '';
+      }
+    }
+
+    function renderListings() {
+      const el = document.getElementById('listings');
+      if (listings.length === 0) {
+        el.innerHTML = '<div class="no-listings">No listings found.<br>Click Refresh to fetch data.</div>';
+        return;
+      }
+
+      el.innerHTML = listings.map((l, i) => `
+        <div class="listing" data-index="${i}" onclick="selectListing(${i})">
+          <div class="listing-address">${escapeHtml(l.formattedAddress || l.address)}</div>
+          <div class="listing-details">
+            ${l.saleDate ? `<strong>Sale Date: ${l.saleDate}</strong><br>` : ''}
+            ${l.startingBid ? `<span class="listing-bid">Starting: ${l.startingBid}</span><br>` : ''}
+            ${l.writAmount ? `<span class="listing-writ">Writ: ${l.writAmount}</span><br>` : ''}
+            <span class="listing-case">${l.suitNumber}</span>
+          </div>
+          <span class="listing-status status-${(l.status || 'pending').toLowerCase()}">${l.status || 'Pending'}</span>
+        </div>
+      `).join('');
+    }
+
+    function addMarkers() {
+      markers.forEach(m => m.setMap(null));
+      markers = [];
+
+      const bounds = new google.maps.LatLngBounds();
+      let count = 0;
+
+      listings.forEach((listing, index) => {
+        if (listing.lat && listing.lng) {
+          const marker = new google.maps.Marker({
+            position: { lat: listing.lat, lng: listing.lng },
+            map: map,
+            title: listing.address,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              fillColor: '#2563eb',
+              fillOpacity: 0.9,
+              strokeColor: '#fff',
+              strokeWeight: 2,
+              scale: 12
+            }
+          });
+
+          marker.addListener('click', () => {
+            showInfoWindow(listing, marker);
+            highlightListing(index);
+          });
+
+          markers[index] = marker;
+          bounds.extend(marker.getPosition());
+          count++;
+        }
+      });
+
+      if (count > 0) {
+        map.fitBounds(bounds);
+        if (count === 1) map.setZoom(15);
+      }
+    }
+
+    function showInfoWindow(listing, marker) {
+      infoWindow.setContent(`
+        <div class="info-window">
+          ${listing.streetViewUrl ? `<img src="${listing.streetViewUrl}" alt="Property photo" onerror="this.style.display='none'">` : ''}
+          <h3>${escapeHtml(listing.formattedAddress || listing.address)}</h3>
+          ${listing.saleDate ? `<p><strong>Sale Date:</strong> ${listing.saleDate}</p>` : ''}
+          <p><strong>Case:</strong> ${listing.suitNumber}</p>
+          ${listing.startingBid ? `<p><strong>Starting Bid:</strong> ${listing.startingBid}</p>` : ''}
+          ${listing.writAmount ? `<p><strong>Writ Amount:</strong> ${listing.writAmount}</p>` : ''}
+          <p><strong>Status:</strong> ${listing.status || 'Pending'}</p>
+          ${listing.plaintiff ? `
+            <div class="parties">
+              <strong>Plaintiff:</strong> ${escapeHtml(listing.plaintiff)}<br>
+              <strong>Defendant:</strong> ${escapeHtml(listing.defendant)}
+            </div>
+          ` : ''}
+          <a href="${listing.url}" target="_blank">View Details</a>
+        </div>
+      `);
+      infoWindow.open(map, marker);
+    }
+
+    function selectListing(index) {
+      highlightListing(index);
+      const marker = markers[index];
+      if (marker && map) {
+        map.panTo(marker.getPosition());
+        map.setZoom(15);
+        showInfoWindow(listings[index], marker);
+      }
+    }
+
+    function highlightListing(index) {
+      document.querySelectorAll('.listing').forEach(el => el.classList.remove('active'));
+      const el = document.querySelector(`[data-index="${index}"]`);
+      if (el) {
+        el.classList.add('active');
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    async function refreshListings() {
+      const btn = document.getElementById('refreshBtn');
+      btn.disabled = true;
+      btn.textContent = 'Fetching listings...';
+      document.getElementById('listings').innerHTML = '<div class="loading">Scraping sheriff sale data...</div>';
+
+      try {
+        await fetch('/api/scrape', { method: 'POST' });
+        for (let i = 0; i < 30; i++) {
+          await new Promise(r => setTimeout(r, 2000));
+          await loadListings();
+          if (listings.length > 0) break;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Refresh Listings';
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text || '';
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>

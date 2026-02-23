@@ -1,0 +1,14 @@
+{
+  "name": "ouachita-sheriff-sales",
+  "version": "2.0.0",
+  "description": "Ouachita Parish Sheriff Sales on Google Maps",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "scrape": "node scraper.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "puppeteer": "^21.6.1"
+  }
+}
