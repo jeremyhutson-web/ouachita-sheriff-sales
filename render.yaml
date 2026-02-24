@@ -3,10 +3,10 @@ services:
     name: ouachita-sheriff-sales
     env: node
     plan: free
-    buildCommand: npm install && npm rebuild puppeteer
+    buildCommand: npm install
     startCommand: npm start
     envVars:
-      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
-        value: false
       - key: NODE_ENV
         value: production
+      - key: GOOGLE_API_KEY
+        sync: false
