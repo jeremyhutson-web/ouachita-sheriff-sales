@@ -6,148 +6,237 @@
   <title>Ouachita Parish Sheriff Sales Map</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, sans-serif; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f0f2f5; }
 
     #app { display: flex; height: 100vh; }
 
+    /* Sidebar */
     #sidebar {
-      width: 400px;
+      width: 420px;
       background: #fff;
-      border-right: 1px solid #ddd;
+      border-right: 1px solid #e2e8f0;
       display: flex;
       flex-direction: column;
+      flex-shrink: 0;
     }
 
     #header {
-      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
       color: white;
       padding: 20px;
     }
+    #header h1 { font-size: 18px; font-weight: 700; margin-bottom: 2px; }
+    #header p { font-size: 12px; opacity: 0.85; }
 
-    #header h1 { font-size: 20px; margin-bottom: 4px; }
-    #header p { font-size: 13px; opacity: 0.9; }
-
-    #controls {
-      padding: 12px;
-      border-bottom: 1px solid #ddd;
-      background: #f8f9fa;
+    /* Freshness Banner */
+    #freshness {
+      padding: 8px 16px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #e2e8f0;
     }
+    .freshness-fresh { background: #f0fdf4; color: #166534; }
+    .freshness-stale { background: #fef3c7; color: #92400e; }
+    .freshness-old { background: #fee2e2; color: #991b1b; }
+    #freshness .dot {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px;
+    }
+    .freshness-fresh .dot { background: #22c55e; }
+    .freshness-stale .dot { background: #f59e0b; }
+    .freshness-old .dot { background: #ef4444; }
 
-    #controls button {
-      width: 100%;
-      padding: 12px;
+    /* Controls */
+    #controls {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #controls .row { display: flex; gap: 8px; }
+    #controls select, #controls input {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+      background: #fff;
+      outline: none;
+    }
+    #controls select:focus, #controls input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+    #refreshBtn {
+      padding: 9px 16px;
       background: #2563eb;
       color: white;
       border: none;
       border-radius: 6px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-    }
-
-    #controls button:hover { background: #1d4ed8; }
-    #controls button:disabled { background: #93c5fd; cursor: wait; }
-
-    #stats {
-      padding: 12px;
-      background: #f1f5f9;
       font-size: 13px;
-      color: #475569;
-      border-bottom: 1px solid #ddd;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
     }
+    #refreshBtn:hover { background: #1d4ed8; }
+    #refreshBtn:disabled { background: #93c5fd; cursor: default; }
 
-    #sale-dates {
-      padding: 8px 12px;
+    /* Scrape progress */
+    #scrape-progress {
+      display: none;
+      padding: 10px 16px;
       background: #eff6ff;
+      border-bottom: 1px solid #e2e8f0;
       font-size: 12px;
       color: #1e40af;
-      border-bottom: 1px solid #ddd;
+    }
+    #scrape-progress .progress-bar {
+      height: 4px;
+      background: #dbeafe;
+      border-radius: 2px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+    #scrape-progress .progress-fill {
+      height: 100%;
+      background: #2563eb;
+      border-radius: 2px;
+      transition: width 0.3s ease;
     }
 
+    /* Stats */
+    #stats {
+      padding: 10px 16px;
+      background: #f8fafc;
+      font-size: 12px;
+      color: #64748b;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      gap: 16px;
+    }
+    .stat { display: flex; align-items: center; gap: 4px; }
+    .stat-num { font-weight: 700; color: #1e293b; font-size: 14px; }
+
+    /* Listings */
     #listings { flex: 1; overflow-y: auto; }
 
     .listing {
-      padding: 14px;
-      border-bottom: 1px solid #eee;
+      padding: 14px 16px;
+      border-bottom: 1px solid #f1f5f9;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: all 0.15s;
+      border-left: 3px solid transparent;
     }
-
     .listing:hover { background: #f8fafc; }
-    .listing.active { background: #eff6ff; border-left: 3px solid #2563eb; }
+    .listing.active { background: #eff6ff; border-left-color: #2563eb; }
 
+    .listing-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
     .listing-address {
       font-weight: 600;
       color: #1e293b;
-      font-size: 14px;
-      margin-bottom: 8px;
-    }
-
-    .listing-details {
       font-size: 13px;
+      line-height: 1.3;
+      flex: 1;
+    }
+    .listing-status {
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+    .status-pending { background: #fef3c7; color: #92400e; }
+    .status-active { background: #dcfce7; color: #166534; }
+    .status-cancelled, .status-continued { background: #fee2e2; color: #991b1b; }
+
+    .listing-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 14px;
+      font-size: 12px;
       color: #64748b;
-      line-height: 1.5;
+      margin-bottom: 6px;
     }
-
-    .listing-bid {
-      color: #059669;
-      font-weight: 600;
-    }
-
-    .listing-writ {
-      color: #dc2626;
-    }
-
+    .listing-date { font-weight: 600; color: #475569; }
     .listing-case {
-      font-family: monospace;
+      font-family: 'SF Mono', 'Cascadia Code', monospace;
       background: #f1f5f9;
-      padding: 2px 6px;
+      padding: 1px 5px;
       border-radius: 3px;
       font-size: 11px;
     }
 
-    .listing-status {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 600;
-      margin-top: 8px;
-      text-transform: uppercase;
+    .listing-financials {
+      display: flex;
+      gap: 12px;
+      font-size: 12px;
+      margin-top: 4px;
     }
+    .fin-item { display: flex; align-items: center; gap: 3px; }
+    .fin-label { color: #94a3b8; }
+    .fin-bid { color: #059669; font-weight: 600; }
+    .fin-writ { color: #dc2626; font-weight: 600; }
+    .fin-equity { font-weight: 700; padding: 1px 6px; border-radius: 3px; font-size: 11px; }
+    .equity-positive { background: #dcfce7; color: #166534; }
+    .equity-negative { background: #fee2e2; color: #991b1b; }
 
-    .status-pending { background: #fef3c7; color: #92400e; }
-    .status-active { background: #dcfce7; color: #166534; }
-
+    /* Map */
     #map { flex: 1; }
 
-    .info-window { max-width: 320px; }
-    .info-window img { width: 100%; height: 150px; object-fit: cover; border-radius: 6px; margin-bottom: 10px; }
-    .info-window h3 { font-size: 15px; margin-bottom: 10px; color: #1e293b; }
-    .info-window p { font-size: 13px; margin: 6px 0; color: #475569; }
-    .info-window .parties { font-size: 12px; color: #64748b; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
-    .info-window a {
-      display: inline-block;
-      margin-top: 12px;
-      padding: 8px 16px;
-      background: #2563eb;
-      color: white;
-      text-decoration: none;
-      border-radius: 6px;
-      font-size: 13px;
+    /* Info Window */
+    .iw { max-width: 340px; font-family: system-ui, sans-serif; }
+    .iw img { width: 100%; height: 160px; object-fit: cover; border-radius: 8px; margin-bottom: 12px; }
+    .iw h3 { font-size: 14px; margin-bottom: 10px; color: #1e293b; line-height: 1.3; }
+    .iw-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 12px; }
+    .iw-label { color: #94a3b8; font-weight: 500; }
+    .iw-value { color: #334155; }
+    .iw-parties {
+      font-size: 11px; color: #64748b; margin-top: 10px; padding-top: 10px;
+      border-top: 1px solid #e2e8f0; line-height: 1.4;
     }
-    .info-window a:hover { background: #1d4ed8; }
+    .iw-actions { display: flex; gap: 6px; margin-top: 12px; }
+    .iw-btn {
+      display: inline-block;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      text-align: center;
+      flex: 1;
+    }
+    .iw-btn-primary { background: #2563eb; color: white; }
+    .iw-btn-primary:hover { background: #1d4ed8; }
+    .iw-btn-secondary { background: #f1f5f9; color: #475569; }
+    .iw-btn-secondary:hover { background: #e2e8f0; }
 
+    /* Empty / Loading states */
     .loading, .no-listings {
       padding: 40px 20px;
       text-align: center;
-      color: #64748b;
+      color: #94a3b8;
+      font-size: 14px;
     }
+    .loading-spinner {
+      display: inline-block;
+      width: 24px; height: 24px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* Mobile */
     @media (max-width: 768px) {
       #app { flex-direction: column; }
-      #sidebar { width: 100%; height: 50%; }
-      #map { height: 50%; }
+      #sidebar { width: 100%; height: 50vh; }
+      #map { height: 50vh; }
     }
   </style>
 </head>
@@ -158,13 +247,28 @@
         <h1>Ouachita Parish Sheriff Sales</h1>
         <p>Real Estate Auction Listings</p>
       </div>
+      <div id="freshness"></div>
       <div id="controls">
-        <button id="refreshBtn" onclick="refreshListings()">Refresh Listings</button>
+        <div class="row">
+          <input type="text" id="searchInput" placeholder="Search address, case, or party..." oninput="applyFilters()">
+        </div>
+        <div class="row">
+          <select id="dateFilter" onchange="applyFilters()">
+            <option value="">All Sale Dates</option>
+          </select>
+          <select id="statusFilter" onchange="applyFilters()">
+            <option value="">All Statuses</option>
+          </select>
+          <button id="refreshBtn" onclick="refreshListings()">Refresh</button>
+        </div>
       </div>
-      <div id="stats">Loading...</div>
-      <div id="sale-dates"></div>
+      <div id="scrape-progress">
+        <div id="scrape-message">Starting...</div>
+        <div class="progress-bar"><div class="progress-fill" id="scrape-fill"></div></div>
+      </div>
+      <div id="stats"></div>
       <div id="listings">
-        <div class="loading">Loading listings...</div>
+        <div class="loading"><div class="loading-spinner"></div><br>Loading listings...</div>
       </div>
     </div>
     <div id="map"></div>
@@ -172,7 +276,10 @@
 
   <script>
     let API_KEY = '';
-    let map, markers = [], infoWindow, listings = [];
+    let map, markers = [], infoWindow;
+    let allListings = [];
+    let filteredListings = [];
+    let scrapeInterval = null;
 
     window.onload = async () => {
       await loadConfig();
@@ -186,7 +293,7 @@
         const config = await res.json();
         API_KEY = config.mapsApiKey;
       } catch (err) {
-        console.error('Failed to load config:', err);
+        console.error('Config load failed:', err);
       }
     }
 
@@ -201,66 +308,176 @@
       map = new google.maps.Map(document.getElementById('map'), {
         center: { lat: 32.5093, lng: -92.1193 },
         zoom: 11,
-        styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }]
+        styles: [
+          { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+          { featureType: 'transit', stylers: [{ visibility: 'off' }] }
+        ],
+        mapTypeControl: true,
+        mapTypeControlOptions: { position: google.maps.ControlPosition.TOP_RIGHT }
       });
       infoWindow = new google.maps.InfoWindow();
       addMarkers();
     }
 
+    // ---- Data Loading ----
+
     async function loadListings() {
       try {
         const res = await fetch('/api/listings');
         const data = await res.json();
-        listings = data.listings || [];
-        updateStats(data);
-        updateSaleDates(data.saleDates);
-        renderListings();
-        if (map) addMarkers();
+        allListings = data.listings || [];
+        updateFreshness(data.scrapedAt);
+        populateFilters(data);
+        applyFilters();
       } catch (err) {
-        document.getElementById('listings').innerHTML = '<div class="no-listings">Failed to load</div>';
+        document.getElementById('listings').innerHTML = '<div class="no-listings">Failed to load listings.</div>';
       }
     }
 
-    function updateStats(data) {
+    function updateFreshness(scrapedAt) {
+      const el = document.getElementById('freshness');
+      if (!scrapedAt) {
+        el.innerHTML = '<span><span class="dot"></span>No data yet. Click Refresh to fetch listings.</span>';
+        el.className = 'freshness-old';
+        return;
+      }
+      const age = Date.now() - new Date(scrapedAt).getTime();
+      const hours = Math.floor(age / 3600000);
+      const days = Math.floor(hours / 24);
+
+      let label, cls;
+      if (hours < 24) {
+        label = hours < 1 ? 'Updated just now' : `Updated ${hours}h ago`;
+        cls = 'freshness-fresh';
+      } else if (days < 7) {
+        label = `Updated ${days} day${days > 1 ? 's' : ''} ago`;
+        cls = 'freshness-stale';
+      } else {
+        label = `Updated ${days} days ago - data may be stale`;
+        cls = 'freshness-old';
+      }
+
+      el.className = cls;
+      el.innerHTML = `<span><span class="dot"></span>${label}</span><span>${new Date(scrapedAt).toLocaleDateString()} ${new Date(scrapedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>`;
+    }
+
+    function populateFilters(data) {
+      // Date filter
+      const dateSelect = document.getElementById('dateFilter');
+      const currentVal = dateSelect.value;
+      dateSelect.innerHTML = '<option value="">All Sale Dates</option>';
+      const dates = data.saleDates || [];
+      for (const d of dates) {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d;
+        dateSelect.appendChild(opt);
+      }
+      dateSelect.value = currentVal;
+
+      // Status filter
+      const statusSelect = document.getElementById('statusFilter');
+      const currentStatus = statusSelect.value;
+      const statuses = [...new Set(allListings.map(l => l.status).filter(Boolean))];
+      statusSelect.innerHTML = '<option value="">All Statuses</option>';
+      for (const s of statuses) {
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = s;
+        statusSelect.appendChild(opt);
+      }
+      statusSelect.value = currentStatus;
+    }
+
+    // ---- Filtering ----
+
+    function applyFilters() {
+      const search = document.getElementById('searchInput').value.toLowerCase().trim();
+      const dateVal = document.getElementById('dateFilter').value;
+      const statusVal = document.getElementById('statusFilter').value;
+
+      filteredListings = allListings.filter(l => {
+        if (dateVal && l.saleDate !== dateVal) return false;
+        if (statusVal && l.status !== statusVal) return false;
+        if (search) {
+          const haystack = [l.address, l.formattedAddress, l.suitNumber, l.plaintiff, l.defendant].join(' ').toLowerCase();
+          if (!haystack.includes(search)) return false;
+        }
+        return true;
+      });
+
+      updateStats();
+      renderListings();
+      if (map) addMarkers();
+    }
+
+    function updateStats() {
       const el = document.getElementById('stats');
-      if (data.count > 0) {
-        const date = new Date(data.scrapedAt).toLocaleString();
-        const mapped = data.listings.filter(l => l.lat && l.lng).length;
-        el.innerHTML = `<strong>${data.count}</strong> properties | <strong>${mapped}</strong> on map | Updated: ${date}`;
-      } else {
-        el.innerHTML = 'No listings found. Click Refresh to fetch data.';
-      }
+      const mapped = filteredListings.filter(l => l.lat && l.lng).length;
+      const total = allListings.length;
+      const showing = filteredListings.length;
+
+      el.innerHTML = `
+        <div class="stat"><span class="stat-num">${total}</span> total</div>
+        <div class="stat"><span class="stat-num">${showing}</span> shown</div>
+        <div class="stat"><span class="stat-num">${mapped}</span> mapped</div>
+      `;
     }
 
-    function updateSaleDates(dates) {
-      const el = document.getElementById('sale-dates');
-      if (dates && dates.length > 0) {
-        el.innerHTML = `<strong>Upcoming Sale Dates:</strong> ${dates.join(' &bull; ')}`;
-      } else {
-        el.innerHTML = '';
-      }
-    }
+    // ---- Rendering ----
 
     function renderListings() {
       const el = document.getElementById('listings');
-      if (listings.length === 0) {
-        el.innerHTML = '<div class="no-listings">No listings found.<br>Click Refresh to fetch data.</div>';
+      if (filteredListings.length === 0) {
+        if (allListings.length === 0) {
+          el.innerHTML = '<div class="no-listings">No listings found.<br>Click Refresh to fetch data.</div>';
+        } else {
+          el.innerHTML = '<div class="no-listings">No listings match your filters.</div>';
+        }
         return;
       }
 
-      el.innerHTML = listings.map((l, i) => `
+      el.innerHTML = filteredListings.map((l, i) => {
+        const equity = computeEquity(l);
+        const statusCls = 'status-' + (l.status || 'pending').toLowerCase().replace(/\s+/g, '-');
+
+        return `
         <div class="listing" data-index="${i}" onclick="selectListing(${i})">
-          <div class="listing-address">${escapeHtml(l.formattedAddress || l.address)}</div>
-          <div class="listing-details">
-            ${l.saleDate ? `<strong>Sale Date: ${l.saleDate}</strong><br>` : ''}
-            ${l.startingBid ? `<span class="listing-bid">Starting: ${l.startingBid}</span><br>` : ''}
-            ${l.writAmount ? `<span class="listing-writ">Writ: ${l.writAmount}</span><br>` : ''}
-            <span class="listing-case">${l.suitNumber}</span>
+          <div class="listing-top">
+            <div class="listing-address">${esc(l.formattedAddress || l.address)}</div>
+            <span class="listing-status ${statusCls}">${esc(l.status || 'Pending')}</span>
           </div>
-          <span class="listing-status status-${(l.status || 'pending').toLowerCase()}">${l.status || 'Pending'}</span>
-        </div>
-      `).join('');
+          <div class="listing-meta">
+            <span class="listing-date">${l.saleDate || ''}</span>
+            <span class="listing-case">${esc(l.suitNumber)}</span>
+          </div>
+          <div class="listing-financials">
+            ${l.startingBid ? `<div class="fin-item"><span class="fin-label">Bid:</span> <span class="fin-bid">${l.startingBid}</span></div>` : ''}
+            ${l.writAmount ? `<div class="fin-item"><span class="fin-label">Writ:</span> <span class="fin-writ">${l.writAmount}</span></div>` : ''}
+            ${equity !== null ? `<div class="fin-item"><span class="fin-equity ${equity >= 0 ? 'equity-positive' : 'equity-negative'}">${equity >= 0 ? '+' : ''}${formatMoney(equity)} equity</span></div>` : ''}
+          </div>
+        </div>`;
+      }).join('');
     }
+
+    function computeEquity(l) {
+      const bid = l.startingBidRaw;
+      const writ = l.writAmountRaw;
+      if (bid && writ && bid > 0 && writ > 0) {
+        return bid - writ;
+      }
+      return null;
+    }
+
+    function formatMoney(val) {
+      const abs = Math.abs(val);
+      if (abs >= 1000) {
+        return '$' + (val / 1000).toFixed(1) + 'k';
+      }
+      return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    // ---- Map ----
 
     function addMarkers() {
       markers.forEach(m => m.setMap(null));
@@ -269,19 +486,22 @@
       const bounds = new google.maps.LatLngBounds();
       let count = 0;
 
-      listings.forEach((listing, index) => {
+      filteredListings.forEach((listing, index) => {
         if (listing.lat && listing.lng) {
+          const equity = computeEquity(listing);
+          const color = equity !== null && equity > 0 ? '#059669' : '#2563eb';
+
           const marker = new google.maps.Marker({
             position: { lat: listing.lat, lng: listing.lng },
             map: map,
             title: listing.address,
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
-              fillColor: '#2563eb',
+              fillColor: color,
               fillOpacity: 0.9,
               strokeColor: '#fff',
               strokeWeight: 2,
-              scale: 12
+              scale: 10
             }
           });
 
@@ -296,29 +516,42 @@
         }
       });
 
-      if (count > 0) {
+      if (count > 1) {
         map.fitBounds(bounds);
-        if (count === 1) map.setZoom(15);
+      } else if (count === 1) {
+        map.setCenter(bounds.getCenter());
+        map.setZoom(15);
       }
     }
 
     function showInfoWindow(listing, marker) {
+      const equity = computeEquity(listing);
+      const equityHtml = equity !== null
+        ? `<span class="iw-label">Equity:</span><span class="iw-value" style="font-weight:700;color:${equity >= 0 ? '#059669' : '#dc2626'}">${equity >= 0 ? '+' : ''}${formatMoney(equity)}</span>`
+        : '';
+
       infoWindow.setContent(`
-        <div class="info-window">
-          ${listing.streetViewUrl ? `<img src="${listing.streetViewUrl}" alt="Property photo" onerror="this.style.display='none'">` : ''}
-          <h3>${escapeHtml(listing.formattedAddress || listing.address)}</h3>
-          ${listing.saleDate ? `<p><strong>Sale Date:</strong> ${listing.saleDate}</p>` : ''}
-          <p><strong>Case:</strong> ${listing.suitNumber}</p>
-          ${listing.startingBid ? `<p><strong>Starting Bid:</strong> ${listing.startingBid}</p>` : ''}
-          ${listing.writAmount ? `<p><strong>Writ Amount:</strong> ${listing.writAmount}</p>` : ''}
-          <p><strong>Status:</strong> ${listing.status || 'Pending'}</p>
+        <div class="iw">
+          ${listing.streetViewUrl ? `<img src="${listing.streetViewUrl}" alt="Street view" onerror="this.style.display='none'">` : ''}
+          <h3>${esc(listing.formattedAddress || listing.address)}</h3>
+          <div class="iw-grid">
+            <span class="iw-label">Sale Date:</span><span class="iw-value" style="font-weight:600">${listing.saleDate || 'TBD'}</span>
+            <span class="iw-label">Case:</span><span class="iw-value">${esc(listing.suitNumber)}</span>
+            ${listing.startingBid ? `<span class="iw-label">Starting Bid:</span><span class="iw-value" style="color:#059669;font-weight:600">${listing.startingBid}</span>` : ''}
+            ${listing.writAmount ? `<span class="iw-label">Writ Amount:</span><span class="iw-value" style="color:#dc2626;font-weight:600">${listing.writAmount}</span>` : ''}
+            ${equityHtml}
+            <span class="iw-label">Status:</span><span class="iw-value">${esc(listing.status || 'Pending')}</span>
+          </div>
           ${listing.plaintiff ? `
-            <div class="parties">
-              <strong>Plaintiff:</strong> ${escapeHtml(listing.plaintiff)}<br>
-              <strong>Defendant:</strong> ${escapeHtml(listing.defendant)}
+            <div class="iw-parties">
+              <strong>Plaintiff:</strong> ${esc(listing.plaintiff)}<br>
+              <strong>Defendant:</strong> ${esc(listing.defendant)}
             </div>
           ` : ''}
-          <a href="${listing.url}" target="_blank">View Details</a>
+          <div class="iw-actions">
+            ${listing.detailUrl ? `<a class="iw-btn iw-btn-primary" href="${listing.detailUrl}" target="_blank">View Details</a>` : ''}
+            <a class="iw-btn iw-btn-secondary" href="https://www.google.com/maps/search/?api=1&query=${listing.lat},${listing.lng}" target="_blank">Google Maps</a>
+          </div>
         </div>
       `);
       infoWindow.open(map, marker);
@@ -330,7 +563,7 @@
       if (marker && map) {
         map.panTo(marker.getPosition());
         map.setZoom(15);
-        showInfoWindow(listings[index], marker);
+        showInfoWindow(filteredListings[index], marker);
       }
     }
 
@@ -343,28 +576,72 @@
       }
     }
 
+    // ---- Refresh / Scrape ----
+
     async function refreshListings() {
       const btn = document.getElementById('refreshBtn');
       btn.disabled = true;
-      btn.textContent = 'Fetching listings...';
-      document.getElementById('listings').innerHTML = '<div class="loading">Scraping sheriff sale data...</div>';
+      btn.textContent = 'Scraping...';
+
+      const progressEl = document.getElementById('scrape-progress');
+      progressEl.style.display = 'block';
 
       try {
-        await fetch('/api/scrape', { method: 'POST' });
-        for (let i = 0; i < 30; i++) {
-          await new Promise(r => setTimeout(r, 2000));
-          await loadListings();
-          if (listings.length > 0) break;
+        const res = await fetch('/api/scrape', { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'already_running') {
+          // already running, just poll
         }
-      } catch (err) {
-        console.error(err);
-      }
 
-      btn.disabled = false;
-      btn.textContent = 'Refresh Listings';
+        // Poll for status
+        scrapeInterval = setInterval(pollScrapeStatus, 1500);
+      } catch (err) {
+        console.error('Scrape trigger failed:', err);
+        btn.disabled = false;
+        btn.textContent = 'Refresh';
+        progressEl.style.display = 'none';
+      }
     }
 
-    function escapeHtml(text) {
+    async function pollScrapeStatus() {
+      try {
+        const res = await fetch('/api/scrape/status');
+        const status = await res.json();
+
+        const msgEl = document.getElementById('scrape-message');
+        const fillEl = document.getElementById('scrape-fill');
+
+        msgEl.textContent = status.message || 'Working...';
+
+        if (status.progress) {
+          const pct = Math.round((status.progress.current / status.progress.total) * 100);
+          fillEl.style.width = pct + '%';
+        }
+
+        if (status.phase === 'done' || status.phase === 'error') {
+          clearInterval(scrapeInterval);
+          scrapeInterval = null;
+
+          // Reload listings
+          await loadListings();
+
+          const btn = document.getElementById('refreshBtn');
+          btn.disabled = false;
+          btn.textContent = 'Refresh';
+
+          // Keep progress visible briefly then hide
+          setTimeout(() => {
+            document.getElementById('scrape-progress').style.display = 'none';
+          }, 2000);
+        }
+      } catch (err) {
+        // ignore polling errors
+      }
+    }
+
+    // ---- Utilities ----
+
+    function esc(text) {
       const div = document.createElement('div');
       div.textContent = text || '';
       return div.innerHTML;
