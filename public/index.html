@@ -256,6 +256,9 @@
           <select id="dateFilter" onchange="applyFilters()">
             <option value="">All Sale Dates</option>
           </select>
+          <select id="zipFilter" onchange="applyFilters()">
+            <option value="">All Zip Codes</option>
+          </select>
           <select id="statusFilter" onchange="applyFilters()">
             <option value="">All Statuses</option>
           </select>
@@ -375,6 +378,19 @@
       }
       dateSelect.value = currentVal;
 
+      // Zip code filter
+      const zipSelect = document.getElementById('zipFilter');
+      const currentZip = zipSelect.value;
+      const zips = [...new Set(allListings.map(l => extractZip(l.address)).filter(Boolean))].sort();
+      zipSelect.innerHTML = '<option value="">All Zip Codes</option>';
+      for (const z of zips) {
+        const opt = document.createElement('option');
+        opt.value = z;
+        opt.textContent = z;
+        zipSelect.appendChild(opt);
+      }
+      zipSelect.value = currentZip;
+
       // Status filter
       const statusSelect = document.getElementById('statusFilter');
       const currentStatus = statusSelect.value;
@@ -394,10 +410,12 @@
     function applyFilters() {
       const search = document.getElementById('searchInput').value.toLowerCase().trim();
       const dateVal = document.getElementById('dateFilter').value;
+      const zipVal = document.getElementById('zipFilter').value;
       const statusVal = document.getElementById('statusFilter').value;
 
       filteredListings = allListings.filter(l => {
         if (dateVal && l.saleDate !== dateVal) return false;
+        if (zipVal && extractZip(l.address) !== zipVal) return false;
         if (statusVal && l.status !== statusVal) return false;
         if (search) {
           const haystack = [l.address, l.formattedAddress, l.suitNumber, l.plaintiff, l.defendant].join(' ').toLowerCase();
@@ -640,6 +658,11 @@
     }
 
     // ---- Utilities ----
+
+    function extractZip(addr) {
+      const m = (addr || '').match(/\b(\d{5})\b/);
+      return m ? m[1] : null;
+    }
 
     function esc(text) {
       const div = document.createElement('div');
